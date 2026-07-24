@@ -253,39 +253,63 @@ Drag.makeDraggable(win.Instance, win.Instance:FindFirstChild("TitleBar"), {
 })
 
 -- ─── 7b. Mobile toggle button ────────────────────────────────────────────────
--- On touch devices there is no keyboard, so we create a small floating button
--- in the bottom-right corner that shows/hides the menu.
+-- The button lives in its OWN dedicated ScreenGui that is NEVER disabled.
+-- Previously it was inside ui._screenGui, so calling ui:SetVisible(false)
+-- hid the button itself — making it impossible to reopen the menu.
+--
+-- Fix: separate ScreenGui for the button + track open state with a local bool
+-- instead of reading ui:IsVisible(). We only toggle win.Instance visibility,
+-- the main ScreenGui stays Enabled = true at all times.
+local guiOpen = true   -- shared state used by both mobile btn and desktop keybind
+
 if isMobile then
+    -- Dedicated always-on ScreenGui so the button is NEVER hidden
+    local btnGui = Instance.new("ScreenGui")
+    btnGui.Name            = "NexusMobileToggleGui"
+    btnGui.ResetOnSpawn    = false
+    btnGui.DisplayOrder    = 1000          -- above the main UI
+    btnGui.IgnoreGuiInset  = true
+    btnGui.ZIndexBehavior  = Enum.ZIndexBehavior.Sibling
+    -- Use same secure parent as the main library
+    local function getSecureParent2()
+        if type(gethui) == "function" then return gethui() end
+        local ok2, cg2 = pcall(function() return game:GetService("CoreGui") end)
+        if ok2 and cg2 then return cg2 end
+        return game.Players.LocalPlayer.PlayerGui
+    end
+    btnGui.Parent = getSecureParent2()
+
     local mobileBtn = Instance.new("TextButton")
-    mobileBtn.Name                   = "NexusMobileToggle"
-    mobileBtn.Size                   = UDim2.new(0, 52, 0, 52)
-    mobileBtn.Position               = UDim2.new(1, -62, 1, -72)   -- bottom-right
-    mobileBtn.AnchorPoint            = Vector2.new(0, 0)
-    mobileBtn.BackgroundColor3       = Theme.Accent
-    mobileBtn.BorderSizePixel        = 0
-    mobileBtn.Font                   = Theme.FontBody
-    mobileBtn.TextSize               = 22
-    mobileBtn.Text                   = "☰"
-    mobileBtn.TextColor3             = Theme.TextPrimary
-    mobileBtn.AutoButtonColor        = false
-    mobileBtn.ZIndex                 = 999
-    mobileBtn.Parent                 = ui._screenGui
+    mobileBtn.Name             = "NexusMobileToggle"
+    mobileBtn.Size             = UDim2.new(0, 56, 0, 56)
+    mobileBtn.Position         = UDim2.new(1, -68, 1, -80)   -- bottom-right
+    mobileBtn.AnchorPoint      = Vector2.new(0, 0)
+    mobileBtn.BackgroundColor3 = Theme.Accent
+    mobileBtn.BorderSizePixel  = 0
+    mobileBtn.Font             = Theme.FontBody
+    mobileBtn.TextSize         = 24
+    mobileBtn.Text             = "☰"
+    mobileBtn.TextColor3       = Theme.TextPrimary
+    mobileBtn.AutoButtonColor  = false
+    mobileBtn.ZIndex           = 1
+    mobileBtn.Parent           = btnGui
     local mbCorner = Instance.new("UICorner")
     mbCorner.CornerRadius = UDim.new(1, 0)
     mbCorner.Parent       = mobileBtn
-    -- Subtle pulse so the user notices it exists
     local mbStroke = Instance.new("UIStroke")
     mbStroke.Color     = Theme.AccentLight
     mbStroke.Thickness = 2
     mbStroke.Parent    = mobileBtn
 
     mobileBtn.MouseButton1Click:Connect(function()
-        local v = not ui:IsVisible()
-        ui:SetVisible(v)
-        if v then
+        guiOpen = not guiOpen
+        if guiOpen then
+            -- Show: make win.Instance visible then spring it open
+            win.Instance.Visible = true
             Tween.openWindow(win.Instance, UDim2.new(0, winW, 0, winH))
             mobileBtn.Text = "✕"
         else
+            -- Hide: shrink then set invisible (Tween.closeWindow does this)
             Tween.closeWindow(win.Instance)
             mobileBtn.Text = "☰"
         end
@@ -564,14 +588,16 @@ ui:CreateButton(tabSettings, {
 })
 
 -- ─── 12. Keybind: toggle visibility (desktop only) ──────────────────────────
+-- Same fix as the mobile button: we track state with guiOpen and only animate
+-- win.Instance.  Never disable the whole ScreenGui.
 if not isMobile then
     local UIS = game:GetService("UserInputService")
     UIS.InputBegan:Connect(function(inp, gameProcessed)
         if gameProcessed then return end
         if inp.KeyCode == TOGGLE_KEY then
-            local v = not ui:IsVisible()
-            ui:SetVisible(v)
-            if v then
+            guiOpen = not guiOpen
+            if guiOpen then
+                win.Instance.Visible = true
                 Tween.openWindow(win.Instance, UDim2.new(0, winW, 0, winH))
             else
                 Tween.closeWindow(win.Instance)
