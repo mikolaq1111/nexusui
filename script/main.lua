@@ -206,9 +206,14 @@ local Plugins = {
 local ui = Library.new()
 ui:SetPlugins(Plugins)
 
+-- ─── 5b. Device helpers ───────────────────────────────────────────────────────
+local UIS2     = game:GetService("UserInputService")
+local isMobile = UIS2.TouchEnabled and not UIS2.MouseEnabled
+local vp       = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize
+                 or Vector2.new(800, 600)
+
 -- ─── 6. Persistent config ─────────────────────────────────────────────────────
 local cfg = Plugins.newConfig(CONFIG_PATH, {
-    -- Default values used if no saved file exists
     aimbot       = false,
     aimSmooth    = 5,
     fov          = 120,
@@ -224,10 +229,14 @@ local cfg = Plugins.newConfig(CONFIG_PATH, {
 })
 
 -- ─── 7. Build the Window ──────────────────────────────────────────────────────
+-- Window width: fill 96% on phone, cap at 420 on tablet/PC
+local winW = math.min(math.floor(vp.X * 0.96), 420)
+local winH = math.min(math.floor(vp.Y * 0.88), 520)
+
 local win = ui:CreateWindow({
     Title       = "NexusUI  v1.0",
-    Size        = UDim2.new(0, 400, 0, 500),
-    Position    = UDim2.new(0.5, -200, 0.5, -250),
+    Size        = UDim2.new(0, winW, 0, winH),
+    Position    = UDim2.new(0.5, -winW/2, 0.5, -winH/2),
     CanClose    = true,
     CanMinimise = true,
     Tabs        = { "Main", "Combat", "Visual", "Settings" },
@@ -242,6 +251,46 @@ Drag.makeDraggable(win.Instance, win.Instance:FindFirstChild("TitleBar"), {
         cfg:SaveWindowPosition("main", win.Instance)
     end,
 })
+
+-- ─── 7b. Mobile toggle button ────────────────────────────────────────────────
+-- On touch devices there is no keyboard, so we create a small floating button
+-- in the bottom-right corner that shows/hides the menu.
+if isMobile then
+    local mobileBtn = Instance.new("TextButton")
+    mobileBtn.Name                   = "NexusMobileToggle"
+    mobileBtn.Size                   = UDim2.new(0, 52, 0, 52)
+    mobileBtn.Position               = UDim2.new(1, -62, 1, -72)   -- bottom-right
+    mobileBtn.AnchorPoint            = Vector2.new(0, 0)
+    mobileBtn.BackgroundColor3       = Theme.Accent
+    mobileBtn.BorderSizePixel        = 0
+    mobileBtn.Font                   = Theme.FontBody
+    mobileBtn.TextSize               = 22
+    mobileBtn.Text                   = "☰"
+    mobileBtn.TextColor3             = Theme.TextPrimary
+    mobileBtn.AutoButtonColor        = false
+    mobileBtn.ZIndex                 = 999
+    mobileBtn.Parent                 = ui._screenGui
+    local mbCorner = Instance.new("UICorner")
+    mbCorner.CornerRadius = UDim.new(1, 0)
+    mbCorner.Parent       = mobileBtn
+    -- Subtle pulse so the user notices it exists
+    local mbStroke = Instance.new("UIStroke")
+    mbStroke.Color     = Theme.AccentLight
+    mbStroke.Thickness = 2
+    mbStroke.Parent    = mobileBtn
+
+    mobileBtn.MouseButton1Click:Connect(function()
+        local v = not ui:IsVisible()
+        ui:SetVisible(v)
+        if v then
+            Tween.openWindow(win.Instance, UDim2.new(0, winW, 0, winH))
+            mobileBtn.Text = "✕"
+        else
+            Tween.closeWindow(win.Instance)
+            mobileBtn.Text = "☰"
+        end
+    end)
+end
 
 -- ─── 8. Tab: Main ────────────────────────────────────────────────────────────
 local tabMain = win:GetTab("Main")
@@ -430,9 +479,16 @@ local txtUser = ui:CreateTextBox(tabSettings, {
 })
 
 ui:CreateSeparator(tabSettings)
-ui:CreateLabel(tabSettings, {
-    Text = "⌨  Keybind: " .. tostring(TOGGLE_KEY.Name) .. " to show/hide menu",
-})
+-- Only show keybind hint on desktop (no keyboard on touch devices)
+if not isMobile then
+    ui:CreateLabel(tabSettings, {
+        Text = "⌨  Keybind: " .. tostring(TOGGLE_KEY.Name) .. " to show/hide menu",
+    })
+else
+    ui:CreateLabel(tabSettings, {
+        Text = "📱  Tap the ☰ button (bottom-right) to show/hide menu",
+    })
+end
 
 ui:CreateSeparator(tabSettings)
 
@@ -507,21 +563,22 @@ ui:CreateButton(tabSettings, {
     end,
 })
 
--- ─── 12. Keybind: toggle visibility ──────────────────────────────────────────
-local UIS = game:GetService("UserInputService")
-UIS.InputBegan:Connect(function(inp, gameProcessed)
-    if gameProcessed then return end
-    if inp.KeyCode == TOGGLE_KEY then
-        local v = not ui:IsVisible()
-        ui:SetVisible(v)
-        -- Animate open/close
-        if v then
-            Tween.openWindow(win.Instance, UDim2.new(0, 400, 0, 500))
-        else
-            Tween.closeWindow(win.Instance)
+-- ─── 12. Keybind: toggle visibility (desktop only) ──────────────────────────
+if not isMobile then
+    local UIS = game:GetService("UserInputService")
+    UIS.InputBegan:Connect(function(inp, gameProcessed)
+        if gameProcessed then return end
+        if inp.KeyCode == TOGGLE_KEY then
+            local v = not ui:IsVisible()
+            ui:SetVisible(v)
+            if v then
+                Tween.openWindow(win.Instance, UDim2.new(0, winW, 0, winH))
+            else
+                Tween.closeWindow(win.Instance)
+            end
         end
-    end
-end)
+    end)
+end
 
 -- ─── 13. Periodic config auto-save ───────────────────────────────────────────
 -- Save dirty config every 60 seconds so data isn't lost if the game crashes.
