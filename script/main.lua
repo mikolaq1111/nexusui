@@ -22,7 +22,7 @@
 -- ─── 1. Configuration ─────────────────────────────────────────────────────────
 --  Replace with your actual GitHub raw URL.
 --  Format: https://raw.githubusercontent.com/USERNAME/REPO/BRANCH/
-local RAW_BASE = "https://raw.githubusercontent.com/OWNER/REPO/main/"
+local RAW_BASE = "https://raw.githubusercontent.com/mikolaq1111/nexusui/main/"
 
 -- Hide/show keybind
 local TOGGLE_KEY = Enum.KeyCode.RightShift
