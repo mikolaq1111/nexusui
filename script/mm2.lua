@@ -739,6 +739,10 @@ ui:CreateButton(tCombat,{Text="⭐ Teleport to Sheriff",Primary=false,
     end})
 
 -- ─── 14. Player ──────────────────────────────────────────────────────────────
+-- FIX: forward-declare setNoclip / setFly so the CharacterAdded closure
+-- captures the LOCAL variables rather than falling back to a nil global.
+local setNoclip, setFly
+
 local function applyStats()
     local h=getHum(); if not h then return end
     h.WalkSpeed=cfg:Get("walkSpeed",16)
@@ -749,15 +753,15 @@ lp.CharacterAdded:Connect(function(c)
         h.WalkSpeed=cfg:Get("walkSpeed",16)
         h.JumpPower=cfg:Get("jumpPower",50)
     end
-    -- re-apply active toggles
-    if cfg:Get("noclip",false) then setNoclip(true) end
-    if cfg:Get("fly",false) then task.delay(0.5,function() setFly(true) end) end
+    -- re-apply active toggles after respawn
+    if cfg:Get("noclip",false) and setNoclip then setNoclip(true) end
+    if cfg:Get("fly",false)    and setFly    then task.delay(0.5,function() setFly(true) end) end
 end)
 applyStats()
 
--- Noclip
+-- Noclip (assign to the forward-declared upvalue)
 local noclipConn
-local function setNoclip(on)
+setNoclip = function(on)
     if noclipConn then noclipConn:Disconnect(); noclipConn=nil end
     if on then
         noclipConn=RS.Stepped:Connect(function()
@@ -773,7 +777,8 @@ end
 
 -- Fly
 local flyOn,flyBody,flyConn=false,nil,nil
-local function setFly(on)
+-- Fly (assign to the forward-declared upvalue)
+setFly = function(on)
     flyOn=on
     if flyConn then flyConn:Disconnect(); flyConn=nil end
     if flyBody and flyBody.Parent then flyBody:Destroy(); flyBody=nil end
@@ -854,7 +859,7 @@ local slSpeed=ui:CreateSlider(tPlayer,{Label="Walk Speed",Min=4,Max=150,
 
 local slJump=ui:CreateSlider(tPlayer,{Label="Jump Power",Min=7,Max=300,
     Default=cfg:Get("jumpPower",50),
-    OnChange=function(v) cfg:Set("jumpPower",v); local h=getHum(); if h then h.JumpPower=v end})
+    OnChange=function(v) cfg:Set("jumpPower",v); local h=getHum(); if h then h.JumpPower=v end end})
 
 ui:CreateSeparator(tPlayer)
 ui:CreateLabel(tPlayer,{Text="✈  SPECIAL",Color=Theme.TextAccent,Size=12})
@@ -902,7 +907,6 @@ ui:CreateLabel(tSet,{Text="⚙  CONFIG",Color=Theme.TextAccent,Size=12})
 ui:CreateSeparator(tSet)
 
 ui:CreateButton(tSet,{Text="💾 Save Config",OnClick=function()
-    cfg:SaveFromHandles({walkSpeed=slSpeed,jumpPower=slJump,espDistance=togESP})
     cfg:Save()
     showToast("💾 Saved","Config saved to file.",Theme.Success,3)
 end})
