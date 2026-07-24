@@ -23,7 +23,7 @@
 -- ─── Raw GitHub base URL ──────────────────────────────────────────────────────
 -- UPDATE THIS to your actual repository URL before deploying.
 -- The trailing slash is required.
-local RAW_BASE = "https://raw.githubusercontent.com/OWNER/REPO/main/plugin-libray/"
+local RAW_BASE = "https://raw.githubusercontent.com/mikolaq1111/nexusui/main/plugin-libray/"
 
 -- ─── Loader helper ───────────────────────────────────────────────────────────
 -- Chooses between require() (Studio/Rojo) and loadstring() (executor).
