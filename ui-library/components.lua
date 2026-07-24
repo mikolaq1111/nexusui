@@ -258,7 +258,7 @@ function Components.CreateWindow(parent, options, theme, plugins)
 
     local minimised = false
     if canClose then
-        makeTitleBtn("✕", -10, Color3.fromRGB(60,30,40), theme.Danger, function()
+        makeTitleBtn("✕", -10, theme.Danger, theme.AccentLight, function()
             tween(window, theme.TweenInfo.Normal,
                 { Size = UDim2.new(0,1,0,1), BackgroundTransparency = 1 },
                 function() window:Destroy() end)
