@@ -595,16 +595,51 @@ local coinFarm  = cfg:Get("coinFarm", false)
 local pickGunOn = cfg:Get("pickGun",  true)
 local pickStarOn= cfg:Get("pickStar", true)
 
-local farmConn
+local farmThread = nil   -- controlled task thread (not Heartbeat)
 
 local function doCoins()
-    local root=getRoot(); if not root then return end
-    for _,o in ipairs(workspace:GetDescendants()) do
-        if o:IsA("BasePart") and o.Name=="Coin" then
-            root.CFrame=CFrame.new(o.Position+Vector3.new(0,2,0))
-            task.wait(0.04)
+    local root = getRoot()
+    if not root then return end
+    -- MM2 coins are BaseParts named "Coin" scattered inside the map model.
+    -- We scan all workspace descendants and teleport directly onto each one.
+    -- Y+0.5 (not Y+2!) so the character HumanoidRootPart actually overlaps
+    -- the coin hitbox and the server-side Touched event fires.
+    local count = 0
+    for _, o in ipairs(workspace:GetDescendants()) do
+        if o:IsA("BasePart") then
+            local n = o.Name:lower()
+            -- Match "Coin", "coin", "GoldCoin", "gold_coin" etc.
+            -- Exclude UI / unrelated parts that contain the word.
+            if (n == "coin" or n == "goldcoin" or n == "gold_coin"
+               or (n:find("coin") and not n:find("coingui") and not n:find("coinui"))) then
+                if o.Parent then   -- still exists
+                    root.CFrame = CFrame.new(o.Position + Vector3.new(0, 0.5, 0))
+                    task.wait(0.10)  -- 100 ms — enough for server touch to register
+                    count = count + 1
+                end
+            end
         end
     end
+    return count
+end
+
+-- Start the coin-farm loop as a managed task thread, NOT via Heartbeat.
+-- Heartbeat would call doCoins (which yields) every frame, creating
+-- thousands of concurrent coroutines and flooding the network.
+local function startFarmLoop()
+    if farmThread then task.cancel(farmThread);farmThread=nil end
+    farmThread = task.spawn(function()
+        while coinFarm do
+            local n = doCoins()
+            -- Brief pause between full sweeps
+            task.wait(math.max(0.4, n and n*0.12 or 0.4))
+        end
+        farmThread = nil
+    end)
+end
+
+local function stopFarmLoop()
+    if farmThread then task.cancel(farmThread);farmThread=nil end
 end
 
 -- ── Auto Pick Gun — EVENT-BASED (workspace.ChildAdded) ──────────────────────
@@ -646,10 +681,8 @@ workspace.DescendantAdded:Connect(function(desc)
     if pickStarOn then task.spawn(tryPickItem, desc.Parent or desc, false, true)  end
 end)
 
--- Coin farm connection
-if coinFarm then
-    farmConn=RS.Heartbeat:Connect(doCoins)
-end
+-- Start coin loop if enabled at load time
+if coinFarm then startFarmLoop() end
 
 local safeConn
 local function doSafes()
@@ -669,8 +702,7 @@ ui:CreateSeparator(tFarm)
 ui:CreateToggle(tFarm,{Label="Auto Coin Collect",Default=coinFarm,
     OnChange=function(v)
         coinFarm=v;cfg:Set("coinFarm",v)
-        if farmConn then farmConn:Disconnect();farmConn=nil end
-        if v then farmConn=RS.Heartbeat:Connect(doCoins) end
+        if v then startFarmLoop() else stopFarmLoop() end
     end})
 ui:CreateButton(tFarm,{Text="⚡ Collect All Coins Once",Primary=false,
     OnClick=function() task.spawn(doCoins) end})
