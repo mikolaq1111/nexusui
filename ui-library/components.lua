@@ -1102,4 +1102,30 @@ function Components.CreateBadge(parent, options, theme, _plugins)
     return handle
 end
 
+-- ─── Aurora title-bar animation ──────────────────────────────────────────────
+-- Call Components.StartAurora(titleBar) after window creation.
+-- Continuously rotates the UIGradient on the title bar through aurora hues.
+-- Returns the Heartbeat connection so it can be disconnected when needed.
+function Components.StartAurora(titleBar)
+    if not titleBar then return end
+    local grad = titleBar:FindFirstChildOfClass("UIGradient")
+    if not grad then return end
+    local RS2 = game:GetService("RunService")
+    local hue = 0
+    local conn = RS2.Heartbeat:Connect(function(dt)
+        hue = (hue + dt * 0.048) % 1
+        -- Three aurora bands cycling through visible aurora wavelengths:
+        -- teal (0.47) → green (0.33) → violet (0.78) → magenta (0.88)
+        local c1 = Color3.fromHSV( hue,              0.82, 0.92)
+        local c2 = Color3.fromHSV((hue + 0.26) % 1,  0.88, 0.76)
+        local c3 = Color3.fromHSV((hue + 0.52) % 1,  0.92, 0.68)
+        grad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0,    c1),
+            ColorSequenceKeypoint.new(0.46, c2),
+            ColorSequenceKeypoint.new(1,    c3),
+        })
+    end)
+    return conn
+end
+
 return Components

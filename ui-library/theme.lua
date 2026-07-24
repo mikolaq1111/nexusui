@@ -1,76 +1,73 @@
 --[[
-    theme.lua  (ui-library)
-    ══════════════════════════════════════════════════════════
-    Premium design token system – MM2 Crimson Edition
-    ══════════════════════════════════════════════════════════
-    All colours, spacing, typography and animation settings
-    live here. Components read from this table; nothing is
-    hardcoded inside the widget constructors.
+    theme.lua  (ui-library)  —  Aurora Borealis Edition
+    ═══════════════════════════════════════════════════════════════
+    Deep-space background · animated teal→purple→magenta accent
+    All widgets inherit these tokens; nothing is hardcoded.
 --]]
 
-local TI = TweenInfo   -- avoid shadowing in nested scopes
+local TI = TweenInfo
 
 local Theme = {
 
-    -- ── Surfaces ────────────────────────────────────────────────────────────
-    Surface        = Color3.fromRGB(10,  10, 22),   -- window body
-    SurfaceRaised  = Color3.fromRGB(16,  16, 34),   -- cards / rows
-    SurfaceSunken  = Color3.fromRGB( 6,   6, 14),   -- inputs / scrollframes
+    -- ── Surfaces ── deep space / almost-black with teal hint ────────────────
+    Surface        = Color3.fromRGB( 4,  4, 16),
+    SurfaceRaised  = Color3.fromRGB( 8,  8, 24),
+    SurfaceSunken  = Color3.fromRGB( 2,  2, 10),
 
-    -- ── Accent ── Crimson ───────────────────────────────────────────────────
-    Accent       = Color3.fromRGB(218, 28,  58),
-    AccentLight  = Color3.fromRGB(255, 80, 108),
-    AccentDark   = Color3.fromRGB(148, 18,  44),
-    AccentGradient = ColorSequence.new({
-        ColorSequenceKeypoint.new(0,   Color3.fromRGB(232, 32,  68)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(192, 24,  76)),
-        ColorSequenceKeypoint.new(1,   Color3.fromRGB(144, 20,  92)),
+    -- ── Aurora accent ── teal primary, gradient from teal→violet→magenta ───
+    Accent       = Color3.fromRGB(  0, 235, 200),
+    AccentLight  = Color3.fromRGB( 80, 255, 235),
+    AccentDark   = Color3.fromRGB(  0, 148, 128),
+    AccentGradient = ColorSequence.new({              -- static baseline
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(  0, 235, 200)),
+        ColorSequenceKeypoint.new(0.4, Color3.fromRGB(115,  50, 255)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(255,   0, 155)),
     }),
 
-    -- ── State colours ───────────────────────────────────────────────────────
-    Success = Color3.fromRGB( 48, 218,  92),
-    Warning = Color3.fromRGB(255, 178,  28),
-    Danger  = Color3.fromRGB(255,  50,  82),   -- ← used as CLOSE BUTTON base
-    Info    = Color3.fromRGB( 62, 158, 255),
+    -- ── State ───────────────────────────────────────────────────────────────
+    Success = Color3.fromRGB(  0, 230, 115),
+    Warning = Color3.fromRGB(255, 185,   0),
+    Danger  = Color3.fromRGB(255,  52,  85),
+    Info    = Color3.fromRGB(  0, 200, 255),
 
-    -- ── Text ────────────────────────────────────────────────────────────────
-    TextPrimary   = Color3.fromRGB(242, 242, 255),
-    TextSecondary = Color3.fromRGB(132, 132, 162),
-    TextDisabled  = Color3.fromRGB( 62,  62,  88),
-    TextAccent    = Color3.fromRGB(255, 102, 132),
-    TextMono      = Color3.fromRGB(158, 220, 158),
+    -- ── Text ── aurora-tinted whites ────────────────────────────────────────
+    TextPrimary   = Color3.fromRGB(215, 255, 250),
+    TextSecondary = Color3.fromRGB( 95, 155, 148),
+    TextDisabled  = Color3.fromRGB( 38,  58,  55),
+    TextAccent    = Color3.fromRGB(  0, 235, 200),
+    TextMono      = Color3.fromRGB( 95, 255, 195),
 
     -- ── Toggle ──────────────────────────────────────────────────────────────
-    ToggleOn   = Color3.fromRGB(218, 28,  58),
-    ToggleOff  = Color3.fromRGB( 26, 26,  50),
-    ToggleKnob = Color3.fromRGB(242, 242, 255),
+    ToggleOn   = Color3.fromRGB(  0, 235, 200),
+    ToggleOff  = Color3.fromRGB( 12,  18,  32),
+    ToggleKnob = Color3.fromRGB(215, 255, 250),
 
     -- ── Scroll / border ─────────────────────────────────────────────────────
-    ScrollBar      = Color3.fromRGB( 58, 58, 98),
-    Border         = Color3.fromRGB( 36, 36, 66),
+    ScrollBar      = Color3.fromRGB( 0,  90,  80),
+    Border         = Color3.fromRGB( 0,  45,  40),
     StrokeWeight   = 1,
     StrokeWeightFat= 2,
 
     -- ── Glow ────────────────────────────────────────────────────────────────
-    GlowColor        = Color3.fromRGB(218, 28, 58),
-    GlowTransparency = 0.70,
+    GlowColor        = Color3.fromRGB(0, 235, 200),
+    GlowTransparency = 0.60,
 
     -- ── Window defaults ─────────────────────────────────────────────────────
-    WindowWidth        = 430,
-    TitleBarHeight     = 48,
-    WindowTransparency = 0.04,
+    WindowWidth        = 445,
+    TitleBarHeight     = 52,
+    WindowTransparency = 0.05,
 
     -- ── Spacing ─────────────────────────────────────────────────────────────
     ItemHeight  = 40,
     ItemSpacing =  5,
-    Padding     = 10,
+    Padding     = 12,
 
-    -- ── Corner radii ────────────────────────────────────────────────────────
-    CornerRadius = UDim.new(0, 12),
-    CornerSmall  = UDim.new(0,  8),
+    -- ── Corners ─────────────────────────────────────────────────────────────
+    CornerRadius = UDim.new(0, 14),
+    CornerSmall  = UDim.new(0,  9),
     CornerPill   = UDim.new(1,  0),
 
-    -- ── Typography ──────────────────────────────────────────────────────────
+    -- ── Fonts ───────────────────────────────────────────────────────────────
     FontTitle = Enum.Font.GothamBold,
     FontBody  = Enum.Font.Gotham,
     FontMono  = Enum.Font.Code,
@@ -79,7 +76,7 @@ local Theme = {
     TextSizeBody  = 13,
     TextSizeSmall = 11,
 
-    -- ── Tween presets ───────────────────────────────────────────────────────
+    -- ── Tweens ──────────────────────────────────────────────────────────────
     TweenInfo = {
         Fast   = TI.new(0.10, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out),
         Normal = TI.new(0.22, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out),
